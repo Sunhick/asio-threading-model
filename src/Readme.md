@@ -1,4 +1,22 @@
 ## ASIO sample code
+* using TaskManager and to post tasks to UI thread and worker threads
+```
+std::thread main([]() {
+std::mutex printMutex;
+TaskManager taskManager(3);
+Task1 t1(printMutex, taskManager);
+Task2 t2(printMutex);
+
+taskManager.Post(t1);
+taskManager.PostToMain(t2);
+
+taskManager.Start();
+});
+
+main.join();
+```
+
+* Without task manager using asio
 ```
 asio::io_service io_service;
 asio::io_service::work work(io_service);
