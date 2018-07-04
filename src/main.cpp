@@ -38,7 +38,7 @@ class Task1 : public Task {
       : lock(lock), manager(manager), simpleTask(SimpleTask(lock)) {}
   void run() override {
     int i = 0;
-    while (i++ < 10) {
+    while (i++ < 100) {
       manager.Post(simpleTask);
       manager.PostToMain(simpleTask);
     }
@@ -63,16 +63,20 @@ class Task2 : public Task {
 int main(int argc, const char* argv[]) {
   std::thread main([]() {
     std::mutex printMutex;
-    TaskManager taskManager(3);
+    TaskManager taskManager(10);
     Task1 t1(printMutex, taskManager);
     Task2 t2(printMutex);
 
-    taskManager.Post(t1);
-    taskManager.PostToMain(t2);
+    // taskManager.Post(t1);
+    // taskManager.PostToMain(t2);
+
+      taskManager.DispatchToMain(t2);
+      taskManager.Dispatch(t1);
 
     taskManager.Start();
   });
 
   main.join();
+
   return 0;
 }

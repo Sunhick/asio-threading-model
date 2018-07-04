@@ -15,8 +15,8 @@ const std::string WORKER_MANAGER_THREAD = "wrkMgr";
 }  // namespace
 
 TaskManager::TaskManager(int workers)
-    : slaveWork(asio::io_service::work(slaves)),
-      mainWork(asio::io_service::work(slaves)) {
+    : slaveWork(std::make_shared<asio::io_service::work>(slaves)),
+      mainWork(std::make_shared<asio::io_service::work>(main)) {
   // Assume the whoever is creating the TaskManager to be
   // a main thread and attach a few worker threads to the
   // pool.
@@ -32,6 +32,9 @@ TaskManager::TaskManager(int workers)
 }
 
 TaskManager::~TaskManager() {
+  mainWork.reset();
+  slaveWork.reset();
+
   main.stop();
   slaves.stop();
 
@@ -48,6 +51,14 @@ void TaskManager::PostToMain(Task& task) {
   main.post(std::bind(&Task::run, &task));
 }
 
+void TaskManager::Dispatch(Task& task) {
+  slaves.dispatch(std::bind(&Task::run, &task));
+}
+
+void TaskManager::DispatchToMain(Task& task) {
+  main.dispatch(std::bind(&Task::run, &task));
+}
+
 void TaskManager::Start() {
   // Run the slaves on a worker manager thread (a different thread);
   // because calling run from the current thread will attach current
@@ -58,12 +69,13 @@ void TaskManager::Start() {
     this->slaves.run();
   }));
 
+  std::cout << "Main thread is ready to process!" << std::endl;
+  std::cout << "workers are ready to process!" << std::endl;
+
   main.run();
 
   for (std::thread& worker : workerPool) {
     worker.join();
   }
   workManager.join();
-  std::cout << "Main thread is ready to process!" << std::endl;
-  std::cout << "workers are ready to process!" << std::endl;
 }

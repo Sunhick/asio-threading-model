@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include <memory>
 #include <thread>
 #include <vector>
 
@@ -18,8 +19,8 @@ class TaskManager {
   asio::io_service main;
   asio::io_service slaves;
 
-  asio::io_service::work slaveWork;
-  asio::io_service::work mainWork;
+  std::shared_ptr<asio::io_service::work> slaveWork;
+  std::shared_ptr<asio::io_service::work> mainWork;
 
  public:
   TaskManager(int workers = std::thread::hardware_concurrency());
@@ -27,5 +28,7 @@ class TaskManager {
 
   void Post(Task& task);
   void PostToMain(Task& task);
+  void Dispatch(Task& task);
+  void DispatchToMain(Task& task);
   void Start();
 };
