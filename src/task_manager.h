@@ -13,6 +13,7 @@ class TaskManager {
  private:
   std::vector<Task> tasks;
   std::vector<std::thread> workerPool;
+  std::thread workManager;
 
   asio::io_service main;
   asio::io_service slaves;

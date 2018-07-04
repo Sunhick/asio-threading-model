@@ -22,7 +22,8 @@ TaskManager::TaskManager(int workers)
   // pool.
   std::this_thread::set_name(MAIN_THREAD);
 
-  for (size_t t = 0; t < workers; t++) {
+  // factor in the worker manager when spinning up the worker pools
+  for (size_t t = 0; t < workers - 1; t++) {
     workerPool.push_back(std::thread([&, this, t] {
       std::this_thread::set_name(WORKER_THREAD + std::to_string(t));
       this->slaves.run();
@@ -33,19 +34,18 @@ TaskManager::TaskManager(int workers)
 TaskManager::~TaskManager() {
   main.stop();
   slaves.stop();
+
   std::cout << "TaskManager stopped!" << std::endl;
 }
 
 void TaskManager::Post(Task& task) {
   // Post to the worker thread
-  void (Task::*run)() = &Task::run;
-  slaves.post(std::bind(run, &task));
+  slaves.post(std::bind(&Task::run, &task));
 }
 
 void TaskManager::PostToMain(Task& task) {
   // Post to the main thread
-  void (Task::*run)() = &Task::run;
-  main.post(std::bind(run, &task));
+  main.post(std::bind(&Task::run, &task));
 }
 
 void TaskManager::Start() {
@@ -53,10 +53,11 @@ void TaskManager::Start() {
   // because calling run from the current thread will attach current
   // thread to the slaves pool. And we don't want to add main thread
   // to the slaves pool.
-  std::thread workManager([this]() {
+  workManager = std::thread(([this]() {
     std::this_thread::set_name(WORKER_MANAGER_THREAD);
     this->slaves.run();
-  });
+  }));
+
   main.run();
 
   for (std::thread& worker : workerPool) {
