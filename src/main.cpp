@@ -20,7 +20,7 @@ class SimpleTask : public Task {
 
  public:
   SimpleTask(std::mutex& lock) : lock(lock) {}
-  void run() override {
+  void run(TaskManagerDelegate& delegate) override {
     std::this_thread::sleep_for(1s);
     std::lock_guard<std::mutex> guard(lock);
     std::cout << "[SimpleTask] " << std::this_thread::get_name() << std::endl;
@@ -30,17 +30,15 @@ class SimpleTask : public Task {
 class Task1 : public Task {
  private:
   std::mutex& lock;
-  TaskManager& manager;
   SimpleTask simpleTask;
 
  public:
-  Task1(std::mutex& lock, TaskManager& manager)
-      : lock(lock), manager(manager), simpleTask(SimpleTask(lock)) {}
-  void run() override {
+  Task1(std::mutex& lock) : lock(lock), simpleTask(SimpleTask(lock)) {}
+  void run(TaskManagerDelegate& delegate) override {
     int i = 0;
     while (i++ < 100) {
-      manager.Post(simpleTask);
-      manager.PostToMain(simpleTask);
+      delegate.Post(simpleTask);
+      delegate.PostToMain(simpleTask);
     }
 
     std::lock_guard<std::mutex> guard(lock);
@@ -54,7 +52,7 @@ class Task2 : public Task {
 
  public:
   Task2(std::mutex& lock) : lock(lock) {}
-  void run() override {
+  void run(TaskManagerDelegate& delegate) override {
     std::lock_guard<std::mutex> guard(lock);
     std::cout << "[Task2] " << std::this_thread::get_name() << std::endl;
   }
@@ -64,14 +62,14 @@ int main(int argc, const char* argv[]) {
   std::thread main([]() {
     std::mutex printMutex;
     TaskManager taskManager(10);
-    Task1 t1(printMutex, taskManager);
+    Task1 t1(printMutex);
     Task2 t2(printMutex);
 
     // taskManager.Post(t1);
     // taskManager.PostToMain(t2);
 
-      taskManager.DispatchToMain(t2);
-      taskManager.Dispatch(t1);
+    taskManager.DispatchToMain(t2);
+    taskManager.Dispatch(t1);
 
     taskManager.Start();
   });

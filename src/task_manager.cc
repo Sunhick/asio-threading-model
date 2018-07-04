@@ -43,20 +43,20 @@ TaskManager::~TaskManager() {
 
 void TaskManager::Post(Task& task) {
   // Post to the worker thread
-  slaves.post(std::bind(&Task::run, &task));
+  slaves.post(std::bind(&Task::run, &task, std::ref(*this)));
 }
 
 void TaskManager::PostToMain(Task& task) {
   // Post to the main thread
-  main.post(std::bind(&Task::run, &task));
+  main.post(std::bind(&Task::run, &task, std::ref(*this)));
 }
 
 void TaskManager::Dispatch(Task& task) {
-  slaves.dispatch(std::bind(&Task::run, &task));
+  slaves.dispatch(std::bind(&Task::run, &task, std::ref(*this)));
 }
 
 void TaskManager::DispatchToMain(Task& task) {
-  main.dispatch(std::bind(&Task::run, &task));
+  main.dispatch(std::bind(&Task::run, &task, std::ref(*this)));
 }
 
 void TaskManager::Start() {
